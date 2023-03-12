@@ -8,12 +8,14 @@ const context = canvas.getContext('2d');
 canvas.width = document.documentElement.clientWidth;
 canvas.height = document.documentElement.clientHeight;
 
-const wastedElelement=document.querySelector('.wasted')
+const wastedElement=document.querySelector('.wasted')
+const scoreElement=document.querySelector('#score')
 
 let player;
 let projectiles = [];
 let enemies = [];
 let particles=[];
+let score=0;
 let animationId;
 let spawnIntervalId;
 let countIntervalId;
@@ -74,7 +76,7 @@ function animate() {
     
     const isGameOver=enemies.some(checkHittingPlayer);
     if(isGameOver){
-        wastedElelement.style.display='block';
+        wastedElement.style.display='block';
         clearInterval(spawnIntervalId)
         clearInterval(countIntervalId)
         cancelAnimationFrame(animationId)
@@ -107,6 +109,7 @@ function checkHittingEnemy(enemy) {
         enemy.health--
         
         if(enemy.health<1){
+            increaseScore();
             enemy.createExplosion(particles);
         }
         return true
@@ -115,4 +118,9 @@ function checkHittingEnemy(enemy) {
 
 function removeProjectileByIndex(index) {
     projectiles.splice(index,1);
+}
+
+function increaseScore() {
+    score +=250;
+    scoreElement.innerHTML=score;
 }
