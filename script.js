@@ -1,14 +1,22 @@
 import {Player} from "./player.js";
 import {Projectile} from "./projectile.js";
+import {Enemy} from "./enemy.js";
+import {distanceBetweenTwoPoints} from "./utilities.js";
 
 const canvas = document.querySelector('canvas');
 const context = canvas.getContext('2d');
 canvas.width = document.documentElement.clientWidth;
 canvas.height = document.documentElement.clientHeight;
 
+const wastedElelement=document.querySelector('.wasted')
+
 let player;
 let projectiles = [];
 let enemies = [];
+let particles=[];
+let animationId;
+let spawnIntervalId;
+let countIntervalId;
 
 startGame();
 
@@ -42,18 +50,40 @@ function createProjectile(event) {
 }
 
 function spawnEnemies() {
-    enemies.push(new Enemy(canvas.width,canvas.height,context,player));
+    let countOfSpawnEnemies=1;
+    
+    countIntervalId=setInterval(()=>countOfSpawnEnemies++,30000)
+    spawnIntervalId=setInterval(()=>spawnCountEnemies(countOfSpawnEnemies),1000)
+    spawnCountEnemies(countOfSpawnEnemies)
 }
 
+function spawnCountEnemies(count) {
+    for(let i=0;i<count;i++){
+        enemies.push(new Enemy(canvas.width,canvas.height,context,player));
+    }
+}
 
 function animate() {
     requestAnimationFrame(animate)
     context.clearRect(0, 0, canvas.width, canvas.height)
-
+    
+    particles=particles.filter(particle=>particle.alpha>0);
     projectiles = projectiles.filter(projectileInsideWindow);
-
+    enemies.forEach(enemy=>checkHittingEnemy(enemy));
+    enemies=enemies.filter(enemy=>enemy.health>0)
+    
+    const isGameOver=enemies.some(checkHittingPlayer);
+    if(isGameOver){
+        wastedElelement.style.display='block';
+        clearInterval(spawnIntervalId)
+        clearInterval(countIntervalId)
+        cancelAnimationFrame(animationId)
+    }
+    
+    particles.forEach(particle=>particle.update());
     projectiles.forEach(projectile => projectile.update());
     player.update();
+    enemies.forEach(enemy=>enemy.update())
 }
 
 function projectileInsideWindow(projectile) {
@@ -61,4 +91,28 @@ function projectileInsideWindow(projectile) {
       projectile.x - projectile.radius < canvas.width &&
       projectile.y + projectile.radius > 0 &&
       projectile.y - projectile.radius < canvas.height
+}
+
+function checkHittingPlayer(enemy) {
+    const distance=distanceBetweenTwoPoints(player.x,player.y,enemy.x,enemy.y)
+    return distance-enemy.radius-player.radius<0;
+}
+
+function checkHittingEnemy(enemy) {
+    projectiles.some((projectile,index)=>{
+        const distance=distanceBetweenTwoPoints(projectile.x,projectile.y,enemy.x,enemy.y)
+        if(distance-enemy.radius - projectile.radius>0) return false;
+        
+        removeProjectileByIndex(index);
+        enemy.health--
+        
+        if(enemy.health<1){
+            enemy.createExplosion(particles);
+        }
+        return true
+    })
+}
+
+function removeProjectileByIndex(index) {
+    projectiles.splice(index,1);
 }
